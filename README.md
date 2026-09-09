@@ -90,6 +90,69 @@ Claude'a şunu sorabilirsiniz:
 
 ---
 
+## CLI — CI/CD Entegrasyonu
+
+MCP server moduna ek olarak doğrudan CLI olarak da kullanılabilir:
+
+```bash
+# Dizindeki tüm bağımlılıkları denetle (npm + pip otomatik tespit)
+npx @guardbee/mcp-dependency-auditor audit ./my-project
+
+# Sadece npm
+npx @guardbee/mcp-dependency-auditor audit-npm . --fail-on=critical
+
+# Sadece pip
+npx @guardbee/mcp-dependency-auditor audit-pip . --fail-on=high
+
+# Tek paket
+npx @guardbee/mcp-dependency-auditor audit-pkg lodash 4.17.20 npm
+
+# JSON çıktı
+npx @guardbee/mcp-dependency-auditor audit . --format=json
+```
+
+**Exit kodları:** `0` = temiz · `1` = threshold üstü bulgu · `2` = hata
+
+### GitHub Actions
+
+```yaml
+name: Dependency Audit
+on: [push, pull_request]
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: Audit dependencies
+        run: npx @guardbee/mcp-dependency-auditor audit . --fail-on=high
+```
+
+### GitLab CI
+
+```yaml
+dependency-audit:
+  image: node:20
+  script:
+    - npx @guardbee/mcp-dependency-auditor audit . --fail-on=high
+  only:
+    - merge_requests
+    - main
+```
+
+### Pre-commit Hook
+
+```bash
+# .git/hooks/pre-push
+npx @guardbee/mcp-dependency-auditor audit . --fail-on=critical || exit 1
+```
+
+---
+
 ## Geliştirme
 
 ```bash
