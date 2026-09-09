@@ -4,6 +4,18 @@ import { parseNpmManifest } from "./parsers/npm.js";
 import { parsePipRequirements } from "./parsers/pip.js";
 import { queryOsvBatch, getSeverity, getFixedVersion, type Ecosystem } from "./osv.js";
 import type { AuditResult } from "./osv.js";
+import { buildSarif } from "./sarif.js";
+import { readFileSync } from "fs";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+function getVersion(): string {
+  try {
+    const pkg = JSON.parse(readFileSync(resolve(__dirname, "../package.json"), "utf8")) as { version: string };
+    return pkg.version;
+  } catch { return "0.0.0"; }
+}
 
 // ── Severity helpers ───────────────────────────────────────────────────────────
 
@@ -96,6 +108,8 @@ async function runCli(cmd: string, rawArgs: string[]): Promise<void> {
     const results = await queryOsvBatch([{ name, version, ecosystem: ecosystem as Ecosystem }]);
     if (format === "json") {
       console.log(JSON.stringify(results, null, 2));
+    } else if (format === "sarif") {
+      console.log(JSON.stringify(buildSarif(getVersion(), results), null, 2));
     } else {
       printText(results, ecosystem, 0);
     }
@@ -136,6 +150,8 @@ async function runCli(cmd: string, rawArgs: string[]): Promise<void> {
 
   if (format === "json") {
     console.log(JSON.stringify({ results: allResults, durationMs: Date.now() - start }, null, 2));
+  } else if (format === "sarif") {
+    console.log(JSON.stringify(buildSarif(getVersion(), allResults), null, 2));
   } else {
     printText(allResults, cmd === "audit-npm" ? "npm" : cmd === "audit-pip" ? "pip" : "total", Date.now() - start);
   }
