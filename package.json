@@ -1,0 +1,39 @@
+{
+  "name": "@guardbee/mcp-dependency-auditor",
+  "version": "0.1.0",
+  "description": "MCP server that audits npm, pip, and cargo dependencies for known CVEs using the OSV database",
+  "type": "module",
+  "bin": {
+    "guardbee-dependency-auditor": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/cli.js",
+    "test": "vitest run",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^2.0.0"
+  },
+  "keywords": ["mcp", "security", "dependency-audit", "cve", "osv", "guardbee", "devtools"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GuardBee/guardbee-mcp-dependency-auditor"
+  }
+}
