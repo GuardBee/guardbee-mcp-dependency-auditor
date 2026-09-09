@@ -1,0 +1,10 @@
+# guardbee.yml — GuardBee project configuration
+# Place this file in your project root.
+# CLI flags always override file settings.
+
+dependency-auditor:
+  fail-on: high          # critical | high | medium | low
+  include-dev: false
+  ignore:                # CVE / GHSA IDs to suppress
+    - "GHSA-xxxx-xxxx-xxxx"
+    - "CVE-2023-00000"

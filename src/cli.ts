@@ -5,6 +5,7 @@ import { parsePipRequirements } from "./parsers/pip.js";
 import { queryOsvBatch, getSeverity, getFixedVersion, type Ecosystem } from "./osv.js";
 import type { AuditResult } from "./osv.js";
 import { buildSarif } from "./sarif.js";
+import { loadConfig, configFilePath } from "./config.js";
 import { readFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -95,7 +96,22 @@ function exitCode(results: AuditResult[], failOn: string): number {
 }
 
 async function runCli(cmd: string, rawArgs: string[]): Promise<void> {
-  const { positionals, failOn, includeDev, format } = parseArgs(rawArgs);
+  const { positionals, failOn: cliFail, includeDev: cliDev, format } = parseArgs(rawArgs);
+
+  // Resolve directory early to load config
+  const dir = cmd !== "audit-pkg" ? positionals[0] : undefined;
+  const cfg = dir ? loadConfig(dir, {
+    ...(cliFail !== "high" ? { failOn: cliFail } : {}),
+    ...(cliDev ? { includeDev: true } : {}),
+  }) : { failOn: cliFail, includeDev: cliDev, ignore: [] };
+
+  const failOn = cfg.failOn;
+  const includeDev = cfg.includeDev;
+
+  if (dir) {
+    const cfgPath = configFilePath(dir);
+    if (cfgPath && format === "text") process.stderr.write(`[guardbee] Using config: ${cfgPath}\n`);
+  }
 
   // ── audit-pkg ──────────────────────────────────────────────────────────────
   if (cmd === "audit-pkg") {
@@ -117,7 +133,6 @@ async function runCli(cmd: string, rawArgs: string[]): Promise<void> {
   }
 
   // ── audit / audit-npm / audit-pip ─────────────────────────────────────────
-  const dir = positionals[0];
   if (!dir) {
     console.error(`Usage: guardbee-dependency-auditor ${cmd} <directory> [--fail-on=high] [--include-dev] [--format=text|json]`);
     process.exit(2);
@@ -146,6 +161,15 @@ async function runCli(cmd: string, rawArgs: string[]): Promise<void> {
   if (allResults.length === 0) {
     console.error(`No supported manifest files found in: ${dir}`);
     process.exit(2);
+  }
+
+  // Apply ignore list from config
+  if (cfg.ignore?.length > 0) {
+    for (const r of allResults) {
+      r.vulns = r.vulns.filter((v) =>
+        !cfg.ignore.some((id) => v.id === id || (v.aliases ?? []).includes(id))
+      );
+    }
   }
 
   if (format === "json") {
